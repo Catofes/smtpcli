@@ -10,21 +10,32 @@ import (
 	"strconv"
 	"net"
 	"fmt"
-	"crypto/tls"
+	"io/ioutil"
 )
 
 func main() {
 	loginInfo := os.Getenv("MAILINFO")
 	to := flag.String("to", "", "receipt address")
 	from := flag.String("from", "", "from address")
+	fromName := flag.String("name", "", "from name")
 	title := flag.String("title", "Hello", "email title")
-	body := flag.String("body", "Wow", "email body")
+	body := flag.String("body", "", "email body")
+	attach := flag.String("attach", "", "email attachment")
 	flag.Parse()
+	if *body == "" {
+		tmp, _ := ioutil.ReadAll(os.Stdin)
+		tmpString := string(tmp)
+		body = &tmpString
+	}
 	m := gomail.NewMessage()
-	m.SetHeader("From", *from)
+	m.SetHeader("Sender", *from)
+	m.SetHeader("From", m.FormatAddress(*from, *fromName))
 	m.SetHeader("To", *to)
 	m.SetHeader("Subject", *title)
 	m.SetBody("text/html", *body)
+	if *attach != "" {
+		m.Attach(*attach)
+	}
 	info, err := url.Parse(loginInfo)
 	if err != nil {
 		log.Panic(err)
@@ -36,7 +47,7 @@ func main() {
 	port, _ := strconv.Atoi(p)
 	password, _ := info.User.Password()
 	d := gomail.NewPlainDialer(host, port, info.User.Username(), password)
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	//d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	fmt.Printf("Sending mail from [%s] to [%s] using server [%s:%d] with username [%s].\n", *from, *to,
 		host, port, info.User.Username())
 	if err := d.DialAndSend(m); err != nil {
