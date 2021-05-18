@@ -43,8 +43,14 @@ func main() {
 	if info.Scheme != "smtp" {
 		log.Panic(errors.New("login info should be smtp://username:password@host:port"))
 	}
-	host, p, _ := net.SplitHostPort(info.Host)
-	port, _ := strconv.Atoi(p)
+	host, p, err := net.SplitHostPort(info.Host)
+	if err!= nil{
+		log.Fatal(err)
+	}
+	port, err := strconv.Atoi(p)
+	if err!=nil {
+		log.Fatal(err)
+	}
 	password, _ := info.User.Password()
 	d := gomail.NewPlainDialer(host, port, info.User.Username(), password)
 	//d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
